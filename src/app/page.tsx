@@ -1,4 +1,5 @@
 import { getArticles, Article } from "@/lib/kv";
+import RefreshButton from "./components/RefreshButton";
 import { formatDistanceToNow } from "date-fns";
 
 export const dynamic = 'force-dynamic';
@@ -19,10 +20,15 @@ export default async function Home() {
   return (
     <div className="container">
       <header>
-        <h1>Particle News Feed</h1>
-        <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-          Latest stories from around the web
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1>Particle News Feed</h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+              Latest stories from around the web
+            </p>
+          </div>
+          <RefreshButton />
+        </div>
       </header>
 
       <main className="feed">
