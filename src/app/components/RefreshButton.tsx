@@ -10,12 +10,18 @@ export default function RefreshButton() {
     const handleRefresh = async () => {
         setLoading(true);
         try {
-            await fetch('/api/update');
-            router.refresh();
-            // Force a hard reload if router.refresh() isn't enough to clear server cache logic locally
-            // window.location.reload(); 
+            const res = await fetch('/api/update');
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(`Update failed: ${data.error || res.statusText}`);
+            } else {
+                alert(`Update complete. Added ${data.added} new articles.`);
+                router.refresh();
+            }
         } catch (error) {
             console.error('Failed to refresh feed:', error);
+            alert('Failed to contact server.');
         } finally {
             setLoading(false);
         }
