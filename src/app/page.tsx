@@ -7,14 +7,15 @@ export const revalidate = 0;
 
 export default async function Home() {
   let articles: Article[] = [];
+  let errorMsg = '';
+
   try {
     articles = await getArticles(50);
     // Sort again client-side/render-side just to be safe if KV didn't give strict order
-    articles.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-  } catch (e) {
+    articles.sort((a: Article, b: Article) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+  } catch (e: any) {
     console.error("Failed to fetch articles:", e);
-    // In production, might want error boundary. 
-    // For now, empty list is fine or simple message.
+    errorMsg = e.message || 'Unknown error';
   }
 
   return (
@@ -32,7 +33,22 @@ export default async function Home() {
       </header>
 
       <main className="feed">
-        {articles.length === 0 ? (
+        {errorMsg && (
+          <div style={{
+            padding: '1rem',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid #ef4444',
+            borderRadius: '8px',
+            color: '#ef4444',
+            marginBottom: '1rem'
+          }}>
+            <strong>Error:</strong> {errorMsg}
+            <br />
+            <small>Ensure Vercel KV is linked to your project in the Vercel Dashboard.</small>
+          </div>
+        )}
+
+        {articles.length === 0 && !errorMsg ? (
           <p style={{ color: 'var(--text-muted)' }}>No articles found. Check back later or trigger an update.</p>
         ) : (
           articles.map((article) => (
