@@ -40,7 +40,7 @@ export async function addArticle(article: Article): Promise<boolean> {
 /**
  * Retrieves the latest articles.
  */
-export async function getArticles(limit: number = 50): Promise<Article[]> {
+export async function getArticles(limit: number = 1000): Promise<Article[]> {
   const articles = await kv.lrange(ARTICLES_KEY, 0, limit - 1);
   return articles as unknown as Article[];
 }

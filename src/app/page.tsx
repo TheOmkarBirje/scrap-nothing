@@ -10,8 +10,7 @@ export default async function Home() {
   let errorMsg = '';
 
   try {
-    articles = await getArticles(50);
-    // Sort again client-side/render-side just to be safe if KV didn't give strict order
+    articles = await getArticles(1000);
     articles.sort((a: Article, b: Article) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
   } catch (e: any) {
     console.error("Failed to fetch articles:", e);
@@ -21,11 +20,11 @@ export default async function Home() {
   return (
     <div className="container">
       <header>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1>Particle News Feed</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              Latest stories from around the web
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
+              Curated stories from around the web.
             </p>
           </div>
           <RefreshButton />
@@ -36,48 +35,64 @@ export default async function Home() {
         {errorMsg && (
           <div style={{
             padding: '1rem',
-            background: 'rgba(239, 68, 68, 0.1)',
+            background: '#fee2e2',
             border: '1px solid #ef4444',
-            borderRadius: '8px',
-            color: '#ef4444',
-            marginBottom: '1rem'
+            borderRadius: '6px',
+            color: '#b91c1c',
+            marginBottom: '1rem',
+            fontSize: '0.9rem'
           }}>
             <strong>Error:</strong> {errorMsg}
             <br />
-            <small>Ensure Vercel KV is linked to your project in the Vercel Dashboard.</small>
+            <span style={{ fontSize: '0.8rem' }}>Ensure Vercel KV is linked to your project.</span>
           </div>
         )}
 
         {articles.length === 0 && !errorMsg ? (
-          <p style={{ color: 'var(--text-muted)' }}>No articles found. Check back later or trigger an update.</p>
+          <p style={{ color: 'var(--text-muted)' }}>No articles found. Trigger an update to populate the feed.</p>
         ) : (
-          articles.map((article) => (
-            <article key={article.url} className="article-card">
-              <h2 className="article-title">
-                <a href={article.url} target="_blank" rel="noopener noreferrer">
-                  {article.title}
-                </a>
-              </h2>
+          articles.map((article, index) => {
+            // Extract domain for HN style display (e.g. "particle.news")
+            let domain = article.source || 'particle.news';
+            try {
+              const urlObj = new URL(article.url);
+              domain = urlObj.hostname.replace('www.', '');
+            } catch (e) { }
 
-              <div className="article-meta">
-                <time dateTime={article.published_at}>
-                  {formatDistanceToNow(new Date(article.published_at), { addSuffix: true })}
-                </time>
-                <span>•</span>
-                <span>{article.source}</span>
-              </div>
-
-              {article.keywords && article.keywords.length > 0 && (
-                <div className="keywords">
-                  {article.keywords.map((keyword, idx) => (
-                    <span key={idx} className="keyword-badge">
-                      {keyword}
-                    </span>
-                  ))}
+            return (
+              <article key={article.url} className="article-card">
+                <div className="article-header">
+                  <span style={{ color: '#999', fontSize: '0.9rem', minWidth: '24px' }}>{index + 1}.</span>
+                  <h2 className="article-title">
+                    <a href={article.url} target="_blank" rel="noopener noreferrer">
+                      {article.title}
+                    </a>
+                  </h2>
+                  <span className="article-domain">({domain})</span>
                 </div>
-              )}
-            </article>
-          ))
+
+                <div style={{ paddingLeft: '28px' }}>
+                  <div className="article-meta">
+                    <time dateTime={article.published_at}>
+                      {formatDistanceToNow(new Date(article.published_at), { addSuffix: true })}
+                    </time>
+                    <span>|</span>
+                    <span>{article.source}</span>
+                  </div>
+
+                  {article.keywords && article.keywords.length > 0 && (
+                    <div className="keywords">
+                      {article.keywords.slice(0, 5).map((keyword, idx) => ( // Show max 5 keywords
+                        <span key={idx} className="keyword-badge">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })
         )}
       </main>
     </div>
