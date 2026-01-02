@@ -34,12 +34,27 @@ export default function RefreshButton() {
             style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '4px',
-                border: '1px solid var(--card-border)',
-                background: 'var(--card-bg)',
-                color: 'var(--foreground)',
+                border: '1px solid var(--line)',
+                background: 'transparent',
+                color: 'var(--muted)',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
-                marginTop: '1rem'
+                fontSize: '0.75rem',
+                fontFamily: 'var(--font-mono)',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+            }}
+            onMouseOver={(e) => {
+                if (!loading) {
+                    e.currentTarget.style.color = 'var(--fg)';
+                    e.currentTarget.style.borderColor = 'var(--muted)';
+                }
+            }}
+            onMouseOut={(e) => {
+                if (!loading) {
+                    e.currentTarget.style.color = 'var(--muted)';
+                    e.currentTarget.style.borderColor = 'var(--line)';
+                }
             }}
         >
             {loading ? 'Refreshing...' : 'Refresh Feed'}
