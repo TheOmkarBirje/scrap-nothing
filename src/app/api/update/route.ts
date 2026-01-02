@@ -13,7 +13,14 @@ export async function GET() {
         console.log(`Starting update job...`);
 
         // Parallel Fetching: Particle + Google News + Reddit RSS
-        const [xmlResponse, googleGen, googleTech, redditNews, redditTech] = await Promise.allSettled([
+        // Sources:
+        // Google: General, Tech, Science, AI (search)
+        // Reddit: news, tech, science, artificial, chatgpt, ArtificialInteligence
+        const [
+            xmlResponse,
+            googleGen, googleTech, googleScience, googleAI,
+            redditNews, redditTech, redditScience, redditArtificial, redditChatGPT, redditAI
+        ] = await Promise.allSettled([
             fetch(sitemapUrl, {
                 cache: 'no-store',
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SitemapNewsFeed/1.0;)' }
@@ -23,8 +30,14 @@ export async function GET() {
             }),
             fetchGoogleNews('GENERAL'),
             fetchGoogleNews('TECHNOLOGY'),
+            fetchGoogleNews('SCIENCE'),
+            fetchGoogleNews('Artificial Intelligence'),
             fetchRedditRSS('news'),
-            fetchRedditRSS('tech')
+            fetchRedditRSS('tech'),
+            fetchRedditRSS('science'),
+            fetchRedditRSS('artificial'),
+            fetchRedditRSS('ChatGPT'),
+            fetchRedditRSS('ArtificialInteligence')
         ]);
 
         let allItems: any[] = [];
@@ -49,25 +62,27 @@ export async function GET() {
             console.error('Particle News fetch failed:', xmlResponse.reason);
         }
 
-        // Process Google News
-        if (googleGen.status === 'fulfilled') {
-            console.log(`Fetched ${googleGen.value.length} items from Google General`);
-            allItems = [...allItems, ...googleGen.value];
-        }
-        if (googleTech.status === 'fulfilled') {
-            console.log(`Fetched ${googleTech.value.length} items from Google Tech`);
-            allItems = [...allItems, ...googleTech.value];
-        }
+        // Helper to process standard arrays
+        const processResult = (result: PromiseSettledResult<Article[]>) => {
+            if (result.status === 'fulfilled') {
+                allItems = [...allItems, ...result.value];
+                return result.value.length;
+            }
+            return 0;
+        };
 
-        // Process Reddit RSS
-        if (redditNews.status === 'fulfilled') {
-            console.log(`Fetched ${redditNews.value.length} items from r/news RSS`);
-            allItems = [...allItems, ...redditNews.value];
-        }
-        if (redditTech.status === 'fulfilled') {
-            console.log(`Fetched ${redditTech.value.length} items from r/tech RSS`);
-            allItems = [...allItems, ...redditTech.value];
-        }
+        const countGGen = processResult(googleGen);
+        const countGTech = processResult(googleTech);
+        const countGSci = processResult(googleScience);
+        const countGAI = processResult(googleAI);
+
+        const countRNews = processResult(redditNews);
+        const countRTech = processResult(redditTech);
+        const countRSci = processResult(redditScience);
+        const countRArt = processResult(redditArtificial);
+        const countRGPT = processResult(redditChatGPT);
+        const countRAI = processResult(redditAI);
+
 
         console.log(`Total candidates to process: ${allItems.length}`);
 
@@ -98,10 +113,8 @@ export async function GET() {
             totalProcessed: allItems.length,
             breakdown: {
                 particle: particleCount,
-                google_general: googleGen.status === 'fulfilled' ? googleGen.value.length : 0,
-                google_tech: googleTech.status === 'fulfilled' ? googleTech.value.length : 0,
-                reddit_news: redditNews.status === 'fulfilled' ? redditNews.value.length : 0,
-                reddit_tech: redditTech.status === 'fulfilled' ? redditTech.value.length : 0
+                google: countGGen + countGTech + countGSci + countGAI,
+                reddit: countRNews + countRTech + countRSci + countRArt + countRGPT + countRAI
             }
         });
     } catch (error) {

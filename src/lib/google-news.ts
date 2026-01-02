@@ -9,14 +9,26 @@ interface RssItem {
     source?: Array<{ _: string, $: { url: string } }>;
 }
 
-export async function fetchGoogleNews(topic: 'TECHNOLOGY' | 'GENERAL' = 'GENERAL'): Promise<Article[]> {
+export async function fetchGoogleNews(topicOrQuery: string): Promise<Article[]> {
     try {
-        let url = 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en'; // Default Top Stories
-        if (topic === 'TECHNOLOGY') {
-            url = 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en';
+        let url = '';
+
+        // Define known topics or assume it's a search query
+        const KNOWN_TOPICS: Record<string, string> = {
+            'GENERAL': 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en',
+            'TECHNOLOGY': 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en',
+            'SCIENCE': 'https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=en-US&gl=US&ceid=US:en',
+        };
+
+        if (KNOWN_TOPICS[topicOrQuery]) {
+            url = KNOWN_TOPICS[topicOrQuery];
+        } else {
+            // Treat as search query
+            const encodedQuery = encodeURIComponent(topicOrQuery);
+            url = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
         }
 
-        console.log(`Fetching Google News (${topic}): ${url}`);
+        console.log(`Fetching Google News (${topicOrQuery}): ${url}`);
 
         const response = await fetch(url, {
             headers: {
@@ -26,7 +38,7 @@ export async function fetchGoogleNews(topic: 'TECHNOLOGY' | 'GENERAL' = 'GENERAL
         });
 
         if (!response.ok) {
-            console.error(`Failed to fetch Google News (${topic}): ${response.status}`);
+            console.error(`Failed to fetch Google News (${topicOrQuery}): ${response.status}`);
             return [];
         }
 
@@ -50,13 +62,13 @@ export async function fetchGoogleNews(topic: 'TECHNOLOGY' | 'GENERAL' = 'GENERAL
                 title: title,
                 published_at: new Date(pubDate).toISOString(),
                 source: sourceName,
-                keywords: [topic === 'TECHNOLOGY' ? 'Technology' : 'General', 'Google News'],
+                keywords: [topicOrQuery, 'Google News'],
                 first_seen_at: new Date().toISOString()
             };
         });
 
     } catch (error) {
-        console.error(`Error fetching Google News (${topic}):`, error);
+        console.error(`Error fetching Google News (${topicOrQuery}):`, error);
         return [];
     }
 }
