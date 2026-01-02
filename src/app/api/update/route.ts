@@ -1,7 +1,9 @@
+
 import { NextResponse } from 'next/server';
 import { parseSitemap } from '@/lib/parser';
 import { addArticle, Article } from '@/lib/kv';
 import { fetchGoogleNews } from '@/lib/google-news';
+import { fetchRedditRSS } from '@/lib/reddit-rss';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +12,8 @@ export async function GET() {
         const sitemapUrl = 'https://particle.news/sitemap.xml';
         console.log(`Starting update job...`);
 
-        // Parallel Fetching
-        const [xmlResponse, googleGen, googleTech] = await Promise.allSettled([
+        // Parallel Fetching: Particle + Google News + Reddit RSS
+        const [xmlResponse, googleGen, googleTech, redditNews, redditTech] = await Promise.allSettled([
             fetch(sitemapUrl, {
                 cache: 'no-store',
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SitemapNewsFeed/1.0;)' }
@@ -20,10 +22,12 @@ export async function GET() {
                 return res.text();
             }),
             fetchGoogleNews('GENERAL'),
-            fetchGoogleNews('TECHNOLOGY')
+            fetchGoogleNews('TECHNOLOGY'),
+            fetchRedditRSS('news'),
+            fetchRedditRSS('tech')
         ]);
 
-        let allItems: any[] = []; // Temporary holder before mapping to Article
+        let allItems: any[] = [];
         let particleCount = 0;
 
         // Process Sitemap
@@ -32,7 +36,7 @@ export async function GET() {
                 const sitemapItems = await parseSitemap(xmlResponse.value);
                 const particleArticles = sitemapItems.map(item => ({
                     ...item,
-                    source: 'particle.news' as string, // Explicit type assertion if needed
+                    source: 'particle.news' as string,
                     first_seen_at: new Date().toISOString()
                 }));
                 particleCount = particleArticles.length;
@@ -55,13 +59,21 @@ export async function GET() {
             allItems = [...allItems, ...googleTech.value];
         }
 
+        // Process Reddit RSS
+        if (redditNews.status === 'fulfilled') {
+            console.log(`Fetched ${redditNews.value.length} items from r/news RSS`);
+            allItems = [...allItems, ...redditNews.value];
+        }
+        if (redditTech.status === 'fulfilled') {
+            console.log(`Fetched ${redditTech.value.length} items from r/tech RSS`);
+            allItems = [...allItems, ...redditTech.value];
+        }
+
         console.log(`Total candidates to process: ${allItems.length}`);
 
         let addedCount = 0;
 
-        // Sort by date (oldest first) so they are pushed to KV list in order (assuming LPUSH)
-        // Actually, if we use LPUSH, we want to push Oldest -> Newest so Newest is at Head (index 0).
-        // Sorting Ascending by Date.
+        // Sort by date (ascending) so they are pushed to KV list in order (Oldest -> Newest)
         allItems.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime());
 
         for (const item of allItems) {
@@ -87,7 +99,9 @@ export async function GET() {
             breakdown: {
                 particle: particleCount,
                 google_general: googleGen.status === 'fulfilled' ? googleGen.value.length : 0,
-                google_tech: googleTech.status === 'fulfilled' ? googleTech.value.length : 0
+                google_tech: googleTech.status === 'fulfilled' ? googleTech.value.length : 0,
+                reddit_news: redditNews.status === 'fulfilled' ? redditNews.value.length : 0,
+                reddit_tech: redditTech.status === 'fulfilled' ? redditTech.value.length : 0
             }
         });
     } catch (error) {
@@ -95,5 +109,3 @@ export async function GET() {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
-
-
