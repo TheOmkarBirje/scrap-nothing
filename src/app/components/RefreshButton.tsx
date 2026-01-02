@@ -19,7 +19,7 @@ export default function RefreshButton() {
                 const { breakdown } = data;
                 let msg = `Update complete. Added ${data.added} unique articles.\n`;
                 if (breakdown) {
-                    msg += `\nSources:\n- Particle: ${breakdown.particle}\n- r/news: ${breakdown.reddit_news}\n- r/tech: ${breakdown.reddit_tech}`;
+                    msg += `\nSources:\n- Particle: ${breakdown.particle}\n- Google General: ${breakdown.google_general}\n- Google Tech: ${breakdown.google_tech}`;
                 }
                 alert(msg);
                 router.refresh();

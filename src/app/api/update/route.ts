@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { parseSitemap } from '@/lib/parser';
 import { addArticle, Article } from '@/lib/kv';
-import { fetchRedditPosts } from '@/lib/reddit';
+import { fetchGoogleNews } from '@/lib/google-news';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export async function GET() {
         console.log(`Starting update job...`);
 
         // Parallel Fetching
-        const [xmlResponse, redditNews, redditTech] = await Promise.allSettled([
+        const [xmlResponse, googleGen, googleTech] = await Promise.allSettled([
             fetch(sitemapUrl, {
                 cache: 'no-store',
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SitemapNewsFeed/1.0;)' }
@@ -19,8 +19,8 @@ export async function GET() {
                 if (!res.ok) throw new Error(`Sitemap fetch failed: ${res.status}`);
                 return res.text();
             }),
-            fetchRedditPosts('news'),
-            fetchRedditPosts('tech')
+            fetchGoogleNews('GENERAL'),
+            fetchGoogleNews('TECHNOLOGY')
         ]);
 
         let allItems: any[] = []; // Temporary holder before mapping to Article
@@ -45,14 +45,14 @@ export async function GET() {
             console.error('Particle News fetch failed:', xmlResponse.reason);
         }
 
-        // Process Reddit
-        if (redditNews.status === 'fulfilled') {
-            console.log(`Fetched ${redditNews.value.length} items from r/news`);
-            allItems = [...allItems, ...redditNews.value];
+        // Process Google News
+        if (googleGen.status === 'fulfilled') {
+            console.log(`Fetched ${googleGen.value.length} items from Google General`);
+            allItems = [...allItems, ...googleGen.value];
         }
-        if (redditTech.status === 'fulfilled') {
-            console.log(`Fetched ${redditTech.value.length} items from r/tech`);
-            allItems = [...allItems, ...redditTech.value];
+        if (googleTech.status === 'fulfilled') {
+            console.log(`Fetched ${googleTech.value.length} items from Google Tech`);
+            allItems = [...allItems, ...googleTech.value];
         }
 
         console.log(`Total candidates to process: ${allItems.length}`);
@@ -86,8 +86,8 @@ export async function GET() {
             totalProcessed: allItems.length,
             breakdown: {
                 particle: particleCount,
-                reddit_news: redditNews.status === 'fulfilled' ? redditNews.value.length : 0,
-                reddit_tech: redditTech.status === 'fulfilled' ? redditTech.value.length : 0
+                google_general: googleGen.status === 'fulfilled' ? googleGen.value.length : 0,
+                google_tech: googleTech.status === 'fulfilled' ? googleTech.value.length : 0
             }
         });
     } catch (error) {
