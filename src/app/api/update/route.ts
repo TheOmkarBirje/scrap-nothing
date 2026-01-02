@@ -24,6 +24,7 @@ export async function GET() {
         ]);
 
         let allItems: any[] = []; // Temporary holder before mapping to Article
+        let particleCount = 0;
 
         // Process Sitemap
         if (xmlResponse.status === 'fulfilled') {
@@ -34,6 +35,7 @@ export async function GET() {
                     source: 'particle.news' as string, // Explicit type assertion if needed
                     first_seen_at: new Date().toISOString()
                 }));
+                particleCount = particleArticles.length;
                 console.log(`Parsed ${particleArticles.length} items from Particle News`);
                 allItems = [...allItems, ...particleArticles];
             } catch (e) {
@@ -78,7 +80,16 @@ export async function GET() {
             }
         }
 
-        return NextResponse.json({ status: 'ok', added: addedCount, totalProcessed: allItems.length });
+        return NextResponse.json({
+            status: 'ok',
+            added: addedCount,
+            totalProcessed: allItems.length,
+            breakdown: {
+                particle: particleCount,
+                reddit_news: redditNews.status === 'fulfilled' ? redditNews.value.length : 0,
+                reddit_tech: redditTech.status === 'fulfilled' ? redditTech.value.length : 0
+            }
+        });
     } catch (error) {
         console.error('Error in /api/update:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

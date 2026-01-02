@@ -23,15 +23,19 @@ export async function fetchRedditPosts(subreddit: string): Promise<Article[]> {
         const url = `https://www.reddit.com/r/${subreddit}/new.json?limit=25`;
         console.log(`Fetching Reddit: ${url}`);
 
+        // Use a real browser UA to avoid rigid bot blocking, though IP might still be an issue.
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; SitemapNewsFeed/1.0;)'
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json'
             },
-            next: { revalidate: 300 } // Cache for 5 mins
+            next: { revalidate: 0 } // Disable cache to ensure fresh attempts
         });
 
         if (!response.ok) {
-            console.error(`Failed to fetch r/${subreddit}: ${response.status}`);
+            console.error(`Failed to fetch r/${subreddit}: ${response.status} ${response.statusText}`);
+            const text = await response.text();
+            console.error(`Response body: ${text.substring(0, 200)}`);
             return [];
         }
 

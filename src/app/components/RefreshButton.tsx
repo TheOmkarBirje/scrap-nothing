@@ -16,7 +16,12 @@ export default function RefreshButton() {
             if (!res.ok) {
                 alert(`Update failed: ${data.error || res.statusText}`);
             } else {
-                alert(`Update complete. Added ${data.added} new articles.`);
+                const { breakdown } = data;
+                let msg = `Update complete. Added ${data.added} unique articles.\n`;
+                if (breakdown) {
+                    msg += `\nSources:\n- Particle: ${breakdown.particle}\n- r/news: ${breakdown.reddit_news}\n- r/tech: ${breakdown.reddit_tech}`;
+                }
+                alert(msg);
                 router.refresh();
             }
         } catch (error) {
